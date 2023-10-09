@@ -1,0 +1,30 @@
+apiVersion: skaffold/v4beta6
+kind: Config
+
+manifests:
+  rawYaml:
+    - resources/run.yaml
+
+build:
+  local:
+    concurrency: 1
+    useDockerCLI: true
+    tryImportMissing: false
+  artifacts:
+    - image: europe-west1-docker.pkg.dev/<project_id>/<repo_id>/uuidgenerator
+      context: .
+      docker:
+        dockerfile: Dockerfile
+
+deploy:
+  cloudrun:
+    projectid: <project_id>
+    region: europe-west1
+    hooks:
+      after:
+        - command:
+            [
+              'sh',
+              '-c',
+              'gcloud run services add-iam-policy-binding uuidgenerator --member allUsers --role roles/run.invoker --region europe-west1 --project <project_id>'
+            ]

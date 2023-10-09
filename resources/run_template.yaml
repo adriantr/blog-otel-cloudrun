@@ -1,0 +1,46 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: uuidgenerator
+  annotations:
+    run.googleapis.com/launch-stage: BETA
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/execution-environment: gen2
+        autoscaling.knative.dev/maxScale: '1'
+        run.googleapis.com/container-dependencies: '{otel: [uuidgenerator]}'
+    spec:
+      volumes:
+      - name: otel-conf-secret
+        secret:
+          secretName: otel-conf
+          items:
+          - key: latest
+            path: config.yaml
+      containers:
+        - image: europe-west1-docker.pkg.dev/<project_id>/<repo_id>/uuidgenerator
+          name: uuidgenerator
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PROJECT_ID
+              value: '<project_id>'
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+        - image: otel/opentelemetry-collector-contrib
+          name: otel
+          volumeMounts:
+          - mountPath: /etc/otelcol-contrib/
+            name: otel-conf-secret
+          env:
+          - name: PORT
+            value: '4318'
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      
